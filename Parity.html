@@ -1,0 +1,676 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Parity — File Compare Tool</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect x='6' y='6' width='36' height='36' rx='8' fill='%230071E3'/%3E%3Crect x='22' y='22' width='36' height='36' rx='8' fill='%238E44EC'/%3E%3Crect x='24' y='28' width='16' height='4' rx='2' fill='%23ffffff'/%3E%3Crect x='24' y='36' width='16' height='4' rx='2' fill='%23ffffff'/%3E%3C/svg%3E">
+<style>
+* { box-sizing: border-box; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  background: linear-gradient(180deg, #eef2fb 0%, #f5f6f8 320px);
+  color: #1d1d1f;
+  margin: 0;
+  padding: 24px;
+}
+.container {
+  max-width: 1100px;
+  margin: 0 auto;
+}
+
+/* ---------- Hero ---------- */
+.hero {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  background: linear-gradient(135deg, #3a4ed6 0%, #6c5ce7 55%, #8e44ec 100%);
+  color: #fff;
+  border-radius: 16px;
+  padding: 22px 26px;
+  margin-bottom: 14px;
+  box-shadow: 0 8px 24px rgba(60, 50, 160, 0.25);
+}
+.hero-mark {
+  flex: 0 0 auto;
+  width: 48px;
+  height: 48px;
+  display: block;
+}
+.hero h1 { font-size: 28px; margin: 0 0 2px; letter-spacing: -0.4px; font-weight: 800; }
+.hero .subtitle { color: rgba(255, 255, 255, 0.88); margin: 0; font-size: 14px; }
+
+.reset-btn {
+  margin-left: auto;
+  align-self: flex-start;
+  flex: 0 0 auto;
+  background: rgba(255, 255, 255, 0.2);
+  color: #fff;
+  border: 1px solid rgba(255, 255, 255, 0.55);
+  padding: 8px 18px;
+  border-radius: 20px;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.reset-btn:hover { background: rgba(255, 255, 255, 0.32); }
+
+.hint {
+  color: #8a6400;
+  background: #fff8e6;
+  border: 1px solid #ffe6a3;
+  border-radius: 8px;
+  padding: 8px 12px;
+  font-size: 13px;
+  margin: 0 0 20px;
+}
+#columnHint.hint { background: none; border: none; padding: 0; color: #6e6e73; }
+
+/* ---------- Upload boxes ---------- */
+.upload-row {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-bottom: 20px;
+}
+.upload-box {
+  flex: 1;
+  min-width: 260px;
+  background: #fff;
+  border: 1px solid #e2e2e5;
+  border-top: 4px solid #0071e3;
+  border-radius: 12px;
+  padding: 18px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.04);
+  transition: box-shadow 0.15s ease;
+}
+.upload-box:hover { box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08); }
+.upload-box-b { border-top-color: #8e44ec; }
+.upload-box h2 { font-size: 15px; margin: 0 0 12px; display: flex; align-items: center; gap: 8px; }
+.dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+.dot-a { background: #0071e3; }
+.dot-b { background: #8e44ec; }
+.upload-box input[type="file"] {
+  width: 100%;
+  padding: 8px;
+  border: 1px dashed #c7c7cc;
+  border-radius: 8px;
+  background: #fafbff;
+  font-size: 13px;
+}
+.file-info { margin-top: 10px; font-size: 13px; color: #6e6e73; font-weight: 500; }
+
+/* ---------- Controls ---------- */
+.controls {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  background: #fff;
+  border: 1px solid #e2e2e5;
+  border-radius: 12px;
+  padding: 18px;
+  margin-bottom: 20px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.04);
+}
+.controls label { font-size: 14px; font-weight: 700; color: #2a2a72; }
+.controls select {
+  padding: 8px 12px;
+  border-radius: 8px;
+  border: 1px solid #d2d2d7;
+  font-size: 14px;
+  min-width: 180px;
+  background: #fafbff;
+}
+.controls button, .export-btn {
+  background: linear-gradient(135deg, #0071e3, #4a4ad8);
+  color: #fff;
+  border: none;
+  padding: 9px 18px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 600;
+  box-shadow: 0 3px 10px rgba(0, 113, 227, 0.3);
+}
+.controls button:hover, .export-btn:hover { filter: brightness(1.08); }
+.checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: #3a3a3c;
+  font-weight: 500;
+  cursor: pointer;
+}
+.checkbox-label input { cursor: pointer; }
+
+/* ---------- Summary stats ---------- */
+.summary {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+}
+.stat {
+  flex: 1;
+  min-width: 140px;
+  background: #fff;
+  border: 1px solid #e2e2e5;
+  border-left: 4px solid #0071e3;
+  border-radius: 12px;
+  padding: 14px;
+  text-align: center;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.04);
+}
+.stat .value { font-size: 24px; font-weight: 800; }
+.stat .label { font-size: 12px; color: #6e6e73; margin-top: 4px; letter-spacing: 0.2px; }
+.stat:nth-of-type(2) { border-left-color: #22a55a; }
+.stat:nth-of-type(3) { border-left-color: #e23b3b; }
+.stat:nth-of-type(4) { border-left-color: #e2a033; }
+.stat:nth-of-type(5) { border-left-color: #8e44ec; }
+
+/* ---------- Filters / export ---------- */
+.filter-row {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  align-items: center;
+  margin-bottom: 12px;
+}
+.filter-btn {
+  background: #fff;
+  border: 1px solid #d2d2d7;
+  color: #3a3a3c;
+  padding: 7px 16px;
+  border-radius: 18px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 600;
+}
+.filter-btn.active {
+  background: linear-gradient(135deg, #0071e3, #6c5ce7);
+  color: #fff;
+  border-color: transparent;
+}
+.export-btn { margin-left: auto; border-radius: 18px; }
+
+/* ---------- Results table ---------- */
+.table-wrap {
+  overflow-x: auto;
+  background: #fff;
+  border: 1px solid #e2e2e5;
+  border-radius: 12px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.04);
+}
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: "SF Mono", Menlo, Consolas, monospace;
+  font-size: 13px;
+}
+th, td {
+  padding: 10px 14px;
+  text-align: left;
+  border-bottom: 1px solid #ececee;
+  white-space: nowrap;
+}
+th {
+  background: linear-gradient(135deg, #f0f2fb, #f7f0fb);
+  font-family: -apple-system, sans-serif;
+  font-weight: 700;
+  color: #2a2a72;
+  position: sticky;
+  top: 0;
+}
+tbody tr:hover { filter: brightness(0.97); }
+tr.row-match { background: #f0fff4; }
+tr.row-mismatch { background: #fff0f0; }
+tr.row-unmatched { background: #fff8e6; }
+.badge {
+  padding: 3px 10px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.2px;
+}
+.badge-match { background: #d4f7dc; color: #1a7f3c; }
+.badge-mismatch { background: #ffd9d9; color: #b3261e; }
+.badge-unmatched { background: #fff0c2; color: #8a6400; }
+.badge-duplicate { background: #e6ddff; color: #5a3dc8; margin-left: 6px; }
+tr.row-duplicate { outline: 2px solid #c9b8ff; outline-offset: -2px; }
+
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="hero">
+    <svg class="hero-mark" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+      <rect x="6" y="6" width="36" height="36" rx="8" fill="#ffffff" opacity="0.95"/>
+      <rect x="22" y="22" width="36" height="36" rx="8" fill="#ffffff" opacity="0.6"/>
+      <rect x="24" y="28" width="16" height="4" rx="2" fill="#3a4ed6"/>
+      <rect x="24" y="36" width="16" height="4" rx="2" fill="#3a4ed6"/>
+    </svg>
+    <div class="hero-text">
+      <h1>Parity</h1>
+      <p class="subtitle">Compare any two files.</p>
+    </div>
+    <button id="resetBtn" class="reset-btn" title="Clear both files and all results">Start Fresh</button>
+  </div>
+  <p class="hint">Numbers files aren't readable in-browser: export to CSV or Excel first (File &gt; Export in Numbers), then upload that.</p>
+
+  <div class="upload-row">
+    <div class="upload-box upload-box-a">
+      <h2><span class="dot dot-a"></span>File A</h2>
+      <input type="file" id="fileA" accept=".csv,.tsv,.txt,.json,.xlsx,.xls,.pdf,.zip">
+      <div class="file-info" id="infoA">No file loaded</div>
+    </div>
+    <div class="upload-box upload-box-b">
+      <h2><span class="dot dot-b"></span>File B</h2>
+      <input type="file" id="fileB" accept=".csv,.tsv,.txt,.json,.xlsx,.xls,.pdf,.zip">
+      <div class="file-info" id="infoB">No file loaded</div>
+    </div>
+  </div>
+
+  <div class="controls" id="controls" style="display:none;">
+    <label for="keyColumn">Compare / match rows by column:</label>
+    <select id="keyColumn"></select>
+    <label class="checkbox-label"><input type="checkbox" id="dedupeToggle"> Deduplicate (keep only first occurrence of each key)</label>
+    <button id="compareBtn">Compare Files</button>
+    <span class="hint" id="columnHint"></span>
+  </div>
+
+  <div class="summary" id="summary" style="display:none;"></div>
+
+  <div class="filter-row" id="filterRow" style="display:none;">
+    <button class="filter-btn active" data-filter="all">All</button>
+    <button class="filter-btn" data-filter="mismatch">Mismatches Only</button>
+    <button class="filter-btn" data-filter="match">Matches Only</button>
+    <button class="filter-btn" data-filter="unmatched">Unmatched Rows</button>
+    <button class="filter-btn" data-filter="duplicate">Duplicate Keys</button>
+    <button id="exportBtn" class="export-btn">Download Results CSV</button>
+  </div>
+
+  <div class="table-wrap">
+    <table id="resultsTable" style="display:none;">
+      <thead><tr id="tableHead"></tr></thead>
+      <tbody id="tableBody"></tbody>
+    </table>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script>
+// ============================================================
+// File format parsers: CSV/TSV/TXT/JSON, Excel (.xlsx/.xls),
+// PDF (best-effort table extraction), and ZIP (extracts the
+// first supported file found inside).
+// ============================================================
+
+if (typeof pdfjsLib !== 'undefined') {
+  pdfjsLib.GlobalWorkerOptions.workerSrc =
+    'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+}
+
+// ---------- Generic delimited text / JSON ----------
+function stripBOM(text) {
+  return text.charCodeAt(0) === 0xFEFF ? text.slice(1) : text;
+}
+
+function detectDelimiter(line) {
+  const counts = {
+    ',': (line.match(/,/g) || []).length,
+    '\t': (line.match(/\t/g) || []).length,
+    ';': (line.match(/;/g) || []).length
+  };
+  return Object.keys(counts).reduce((a, b) => (counts[a] >= counts[b] ? a : b));
+}
+
+function parseDelimitedLine(line, delim) {
+  const out = [];
+  let cur = '', inQuotes = false;
+  for (let i = 0; i < line.length; i++) {
+    const c = line[i];
+    if (inQuotes) {
+      if (c === '"' && line[i + 1] === '"') { cur += '"'; i++; }
+      else if (c === '"') { inQuotes = false; }
+      else { cur += c; }
+    } else {
+      if (c === '"') inQuotes = true;
+      else if (c === delim) { out.push(cur.trim()); cur = ''; }
+      else cur += c;
+    }
+  }
+  out.push(cur.trim());
+  return out;
+}
+
+function rowsFromHeaderedLines(lines, splitFn) {
+  const headers = splitFn(lines[0]);
+  const rows = lines.slice(1).map(line => {
+    const cells = splitFn(line);
+    const obj = {};
+    headers.forEach((h, idx) => { obj[h] = cells[idx] !== undefined ? cells[idx] : ''; });
+    return obj;
+  });
+  return { headers, rows };
+}
+
+function parseDelimitedText(text) {
+  const lines = text.split('\n').filter(l => l.length > 0);
+  if (lines.length === 0) return { headers: [], rows: [] };
+  const delim = detectDelimiter(lines[0]);
+  return rowsFromHeaderedLines(lines, l => parseDelimitedLine(l, delim));
+}
+
+function parseTextContent(text) {
+  text = stripBOM(text).replace(/\r\n/g, '\n').trim();
+  if (!text) return { headers: [], rows: [] };
+  if (text.startsWith('[') || text.startsWith('{')) {
+    try {
+      const parsed = JSON.parse(text);
+      const arr = Array.isArray(parsed) ? parsed : (parsed.rows || parsed.data || [parsed]);
+      const headerSet = new Set();
+      arr.forEach(r => Object.keys(r).forEach(k => headerSet.add(k)));
+      return { headers: [...headerSet], rows: arr };
+    } catch (e) { /* not JSON, fall through */ }
+  }
+  return parseDelimitedText(text);
+}
+
+// Whitespace-column parser — used for text pulled out of a PDF,
+// which has no real delimiter, only visual spacing.
+function parseWhitespaceTable(text) {
+  const lines = text.split('\n').map(l => l.trim()).filter(l => l.length > 0);
+  if (lines.length === 0) return { headers: [], rows: [] };
+  const split = line => line.split(/\s{2,}|\t+/).map(c => c.trim()).filter(c => c.length > 0);
+  return rowsFromHeaderedLines(lines, split);
+}
+
+// ---------- Excel (.xlsx / .xls) via SheetJS ----------
+function parseExcelBuffer(buffer) {
+  const wb = XLSX.read(buffer, { type: 'array' });
+  const sheetName = wb.SheetNames[0];
+  const rows = XLSX.utils.sheet_to_json(wb.Sheets[sheetName], { defval: '' });
+  const headerSet = new Set();
+  rows.forEach(r => Object.keys(r).forEach(k => headerSet.add(k)));
+  return { headers: [...headerSet], rows, meta: 'sheet "' + sheetName + '"' };
+}
+
+// ---------- PDF via PDF.js (best-effort; works well on simple exported tables) ----------
+async function parsePdfBuffer(buffer) {
+  const pdf = await pdfjsLib.getDocument({ data: buffer }).promise;
+  let fullText = '';
+  for (let i = 1; i <= pdf.numPages; i++) {
+    const page = await pdf.getPage(i);
+    const content = await page.getTextContent();
+    const lines = {};
+    content.items.forEach(item => {
+      const y = Math.round(item.transform[5]);
+      (lines[y] = lines[y] || []).push(item.str);
+    });
+    Object.keys(lines).map(Number).sort((a, b) => b - a)
+      .forEach(y => { fullText += lines[y].join('  ') + '\n'; });
+  }
+  return parseWhitespaceTable(fullText);
+}
+
+// ---------- ZIP via JSZip (extracts first supported file found) ----------
+const SUPPORTED_EXTS = ['csv', 'tsv', 'txt', 'json', 'xlsx', 'xls', 'pdf'];
+
+function extOf(name) {
+  const parts = name.toLowerCase().split('.');
+  return parts.length > 1 ? parts.pop() : '';
+}
+
+async function parseZipBuffer(buffer) {
+  const zip = await JSZip.loadAsync(buffer);
+  const entries = Object.values(zip.files).filter(f => !f.dir);
+  let picked = null;
+  for (const ext of SUPPORTED_EXTS) {
+    picked = entries.find(f => extOf(f.name) === ext);
+    if (picked) break;
+  }
+  if (!picked) throw new Error('Zip has no supported file inside (csv/tsv/txt/json/xlsx/xls/pdf).');
+  const data = await picked.async('arraybuffer');
+  const result = await parseByExtension(extOf(picked.name), data);
+  result.meta = 'from "' + picked.name + '" in zip' + (result.meta ? ' — ' + result.meta : '');
+  return result;
+}
+
+// ---------- Dispatcher ----------
+async function parseByExtension(ext, buffer) {
+  if (['csv', 'tsv', 'txt', 'json'].includes(ext)) {
+    return parseTextContent(new TextDecoder('utf-8').decode(buffer));
+  }
+  if (['xlsx', 'xls'].includes(ext)) return parseExcelBuffer(buffer);
+  if (ext === 'pdf') return await parsePdfBuffer(buffer);
+  if (ext === 'zip') return await parseZipBuffer(buffer);
+  throw new Error('Unsupported file type: .' + ext + ' — export to CSV/Excel first (e.g. from Numbers).');
+}
+// ---------- State ----------
+let fileA = null; // { headers: [...], rows: [{...}] }
+let fileB = null;
+let results = []; // flattened comparison rows for rendering/export
+let currentFilter = 'all';
+
+// Format-specific parsing (parseByExtension, parseTextContent, parseExcelBuffer,
+// parsePdfBuffer, parseZipBuffer, etc.) lives in parsers.js.
+
+function extOfName(name) {
+  const parts = name.toLowerCase().split('.');
+  return parts.length > 1 ? parts.pop() : '';
+}
+
+// ---------- File loading ----------
+function loadFile(input, infoEl, onDone) {
+  const file = input.files[0];
+  if (!file) return;
+  infoEl.textContent = 'Reading ' + file.name + '...';
+  const reader = new FileReader();
+  reader.onload = async e => {
+    try {
+      const ext = extOfName(file.name);
+      const data = await parseByExtension(ext, e.target.result);
+      const metaStr = data.meta ? ' (' + data.meta + ')' : '';
+      infoEl.textContent = file.name + metaStr + ' — ' + data.rows.length + ' rows, ' + data.headers.length + ' columns';
+      onDone(data);
+    } catch (err) {
+      infoEl.textContent = 'Error parsing ' + file.name + ': ' + err.message;
+    }
+  };
+  reader.onerror = () => { infoEl.textContent = 'Failed to read ' + file.name; };
+  reader.readAsArrayBuffer(file);
+}
+
+document.getElementById('fileA').addEventListener('change', e => {
+  loadFile(e.target, document.getElementById('infoA'), data => { fileA = data; afterLoad(); });
+});
+document.getElementById('fileB').addEventListener('change', e => {
+  loadFile(e.target, document.getElementById('infoB'), data => { fileB = data; afterLoad(); });
+});
+
+function afterLoad() {
+  if (!fileA || !fileB) return;
+  const common = fileA.headers.filter(h => fileB.headers.includes(h));
+  const select = document.getElementById('keyColumn');
+  select.innerHTML = '';
+  const hint = document.getElementById('columnHint');
+  if (common.length === 0) {
+    hint.textContent = 'No matching column names found between the two files.';
+    document.getElementById('controls').style.display = 'flex';
+    document.getElementById('compareBtn').disabled = true;
+    return;
+  }
+  hint.textContent = common.length + ' shared column(s) found.';
+  common.forEach(h => {
+    const opt = document.createElement('option');
+    opt.value = h; opt.textContent = h;
+    select.appendChild(opt);
+  });
+  document.getElementById('controls').style.display = 'flex';
+}
+
+// ---------- Comparison ----------
+document.getElementById('compareBtn').addEventListener('click', runComparison);
+
+// Groups rows by their key column value. Every row is kept (not just the first) —
+// duplicates are preserved, flagged, and only dropped if the user opts into dedupe.
+function groupByKey(rows, key) {
+  const map = new Map();
+  rows.forEach(row => {
+    const k = String(row[key] ?? '').trim();
+    if (!map.has(k)) map.set(k, []);
+    map.get(k).push(row);
+  });
+  return map;
+}
+
+function runComparison() {
+  const key = document.getElementById('keyColumn').value;
+  const dedupe = document.getElementById('dedupeToggle').checked;
+  const common = fileA.headers.filter(h => fileB.headers.includes(h) && h !== key);
+
+  let groupedA = groupByKey(fileA.rows, key);
+  let groupedB = groupByKey(fileB.rows, key);
+  if (dedupe) {
+    groupedA = new Map([...groupedA].map(([k, rows]) => [k, [rows[0]]]));
+    groupedB = new Map([...groupedB].map(([k, rows]) => [k, [rows[0]]]));
+  }
+
+  const allKeys = new Set([...groupedA.keys(), ...groupedB.keys()]);
+  results = [];
+
+  allKeys.forEach(k => {
+    const rowsA = groupedA.get(k) || [];
+    const rowsB = groupedB.get(k) || [];
+    const isDuplicate = rowsA.length > 1 || rowsB.length > 1;
+    const pairCount = Math.min(rowsA.length, rowsB.length);
+    const labelFor = i => isDuplicate ? k + ' (#' + (i + 1) + ')' : k;
+
+    for (let i = 0; i < pairCount; i++) {
+      common.forEach(col => {
+        const va = String(rowsA[i][col] ?? '').trim();
+        const vb = String(rowsB[i][col] ?? '').trim();
+        results.push({ key: labelFor(i), column: col, valueA: va, valueB: vb, status: va === vb ? 'match' : 'mismatch', duplicate: isDuplicate });
+      });
+    }
+    for (let i = pairCount; i < rowsA.length; i++) {
+      results.push({ key: labelFor(i), column: '(row)', valueA: 'present', valueB: 'missing', status: 'unmatched', duplicate: isDuplicate });
+    }
+    for (let i = pairCount; i < rowsB.length; i++) {
+      results.push({ key: labelFor(i), column: '(row)', valueA: 'missing', valueB: 'present', status: 'unmatched', duplicate: isDuplicate });
+    }
+  });
+
+  renderSummary();
+  renderTable();
+  document.getElementById('summary').style.display = 'flex';
+  document.getElementById('filterRow').style.display = 'flex';
+  document.getElementById('resultsTable').style.display = 'table';
+}
+
+// ---------- Rendering ----------
+function renderSummary() {
+  const total = results.length;
+  const matches = results.filter(r => r.status === 'match').length;
+  const mismatches = results.filter(r => r.status === 'mismatch').length;
+  const unmatched = results.filter(r => r.status === 'unmatched').length;
+  const duplicateKeys = new Set(results.filter(r => r.duplicate).map(r => r.key.replace(/ \(#\d+\)$/, ''))).size;
+  const pct = total ? Math.round((matches / total) * 100) : 0;
+  const summary = document.getElementById('summary');
+  summary.innerHTML = '';
+  [['Total Checks', total], ['Matches', matches], ['Mismatches', mismatches], ['Unmatched Rows', unmatched], ['Duplicate Keys', duplicateKeys], ['Match Rate', pct + '%']]
+    .forEach(([label, value]) => {
+      const div = document.createElement('div');
+      div.className = 'stat';
+      div.innerHTML = '<div class="value">' + value + '</div><div class="label">' + label + '</div>';
+      summary.appendChild(div);
+    });
+}
+
+function renderTable() {
+  const head = document.getElementById('tableHead');
+  head.innerHTML = '<th>Key</th><th>Column</th><th>File A Value</th><th>File B Value</th><th>Status</th>';
+  const body = document.getElementById('tableBody');
+  body.innerHTML = '';
+  const filtered = currentFilter === 'all' ? results : (currentFilter === 'duplicate' ? results.filter(r => r.duplicate) : results.filter(r => r.status === currentFilter));
+  filtered.forEach(r => {
+    const tr = document.createElement('tr');
+    tr.className = 'row-' + r.status + (r.duplicate ? ' row-duplicate' : '');
+    const badgeClass = 'badge badge-' + r.status;
+    const dupBadge = r.duplicate ? ' <span class="badge badge-duplicate">duplicate key</span>' : '';
+    tr.innerHTML = '<td>' + escapeHtml(r.key) + dupBadge + '</td><td>' + escapeHtml(r.column) + '</td><td>' +
+      escapeHtml(r.valueA) + '</td><td>' + escapeHtml(r.valueB) + '</td><td><span class="' + badgeClass + '">' + r.status + '</span></td>';
+    body.appendChild(tr);
+  });
+}
+
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+}
+
+document.querySelectorAll('.filter-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    currentFilter = btn.dataset.filter;
+    renderTable();
+  });
+});
+
+// ---------- Start fresh ----------
+// Returns the tool to its initial state: both files cleared, all results
+// discarded, filters reset. Does not reload the page.
+function startFresh() {
+  fileA = null;
+  fileB = null;
+  results = [];
+  currentFilter = 'all';
+
+  ['fileA', 'fileB'].forEach(id => { document.getElementById(id).value = ''; });
+  document.getElementById('infoA').textContent = 'No file loaded';
+  document.getElementById('infoB').textContent = 'No file loaded';
+
+  document.getElementById('keyColumn').innerHTML = '';
+  document.getElementById('columnHint').textContent = '';
+  document.getElementById('compareBtn').disabled = false;
+  document.getElementById('dedupeToggle').checked = false;
+
+  ['controls', 'summary', 'filterRow'].forEach(id => {
+    document.getElementById(id).style.display = 'none';
+  });
+  document.getElementById('resultsTable').style.display = 'none';
+  document.getElementById('summary').innerHTML = '';
+  document.getElementById('tableHead').innerHTML = '';
+  document.getElementById('tableBody').innerHTML = '';
+
+  document.querySelectorAll('.filter-btn').forEach((b, i) => {
+    b.classList.toggle('active', b.dataset.filter === 'all');
+  });
+
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+document.getElementById('resetBtn').addEventListener('click', startFresh);
+
+// ---------- Export ----------
+document.getElementById('exportBtn').addEventListener('click', () => {
+  const filtered = currentFilter === 'all' ? results : (currentFilter === 'duplicate' ? results.filter(r => r.duplicate) : results.filter(r => r.status === currentFilter));
+  const header = ['Key', 'Column', 'File A Value', 'File B Value', 'Status', 'Duplicate Key'];
+  const csvRows = [header.join(',')];
+  filtered.forEach(r => {
+    csvRows.push([r.key, r.column, r.valueA, r.valueB, r.status, r.duplicate ? 'yes' : 'no'].map(v => '"' + String(v).replace(/"/g, '""') + '"').join(','));
+  });
+  const blob = new Blob([csvRows.join('\n')], { type: 'text/csv' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = 'comparison-results.csv';
+  a.click();
+  URL.revokeObjectURL(url);
+});
+</script>
+</body>
+</html>
